@@ -1,0 +1,17 @@
+{
+  "name": "cowin-appointments-notifier-18-44",
+  "version": "0.0.1",
+  "description": "An app that will notify of available cowin appointments",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Yogesh Dengle",
+  "license": "ISC",
+  "dependencies": {
+    "telegram": "^1.5.11"
+  }
+}
