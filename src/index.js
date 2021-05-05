@@ -124,7 +124,7 @@ async function filterAvailable(data, groupName, age, filterFunction) {
 async function sendNotification(data, groupName, age) {
   try {
     let notificationString = `Found ${data.slots} open ${age}+ slots at center "${data.name}" Address - "${data.address}" Block/Tal - "${data.blockName}" pin code is ${data.pin} for date ${data.date}. \nAvailable Vaccine is ${data.vaccine}. This is a ${data.freePaid} site.\nThis data is as of ${data.foundAt}. \n\nRegistration Link: https://selfregistration.cowin.gov.in/ \n\nThe API used to fetch data is sometimes inconsistent, please reverify this against the Cowin website.`;
-    console.log(notificationString);
+    console.log("SessionId-%s is in notifications %s ; 24 hrs count %s and notification is \n %s", data.sessionId, notificationSentCenters.has(data.sessionId), notificationsSentPerSessionPer24Hrs.get(data.sessionId), notificationString);
     await client.sendMessage(groupName, { message: notificationString });
   } catch (error) {
     console.log("Error while sending message", error);
@@ -183,6 +183,7 @@ async function getAndProcessDataForAbad() {
 
 
 function clearLast10MinuteData() {
+  console.log("Clearing 10 minute data");
   let keys = notificationSentCenters.keys();
   notificationSentCenters.clear();
   for (let sessionId of keys){
@@ -199,6 +200,7 @@ function clearLast10MinuteData() {
 }
 
 function clearLast24HourData(){
+  console.log("Clearing 24 hr counts");
   notificationsSentPerSessionPer24Hrs.clear();
 }
 
