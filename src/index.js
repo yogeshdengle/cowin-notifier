@@ -14,7 +14,7 @@ const apiHash = config.apiHash;
 const BotToken = config.botToken;
 var client;
 var notificationSentCenters = new Set();
-var notificationSentOneHour = new Map();
+var notificationsSentPerSessionPer24Hrs = new Map();
 var log = console.log;
 var responseCache = new Map();
 
@@ -110,7 +110,7 @@ async function filterAvailable(data, groupName, age, filterFunction) {
           vaccine: session.vaccine,
           address: center.address
         }
-        if (!notificationSentCenters.has(notificationData.sessionId)) {
+        if (!notificationSentCenters.has(notificationData.sessionId) && (!notificationsSentPerSessionPer24Hrs.get(notificationData.sessionId) || notificationsSentPerSessionPer24Hrs.get(notificationData.sessionId) < 6)) {
           await sendNotification(notificationData, groupName, age);
           notificationSentCenters.add(notificationData.sessionId);
         }
@@ -158,7 +158,7 @@ function shouldProcessResponse(response){
 async function getAndProcessDataForPune() {
   let response = await getDistrictData(363);
   if (shouldProcessResponse(response)) {
-    fs.writeFileSync("./response.json", JSON.stringify(response.body));
+    //fs.writeFileSync("./response.json", JSON.stringify(response.body));
     //await filter18PlusAvailable(response, "U45Pune");
     await filterAvailable(response.body, "U45Pune", 18);
     await filterAvailable(response.body, "Above45PuneCity", 45, (center, session) => {
@@ -176,7 +176,23 @@ async function getAndProcessDataForAbad() {
 
 
 function clearLast10MinuteData() {
+  let keys = notificationSentCenters.keys();
   notificationSentCenters.clear();
+  for (let sessionId of keys){
+    if (notificationsSentPerSessionPer24Hrs.get(sessionId)){
+      let count = notificationsSentPerSessionPer24Hrs.get(sessionId);
+      count++;
+      notificationsSentPerSessionPer24Hrs.set(key, count);
+    } else {
+      let count = 1;
+      notificationsSentPerSessionPer24Hrs.set(key, count);
+    }
+  }
+
+}
+
+function clearLast24HourData(){
+  notificationsSentPerSessionPer24Hrs.clear();
 }
 
 
@@ -187,6 +203,7 @@ async function main() {
   let timerId = setInterval(getAndProcessDataForPune, 7000);
   let timerId2 = setInterval(getAndProcessDataForAbad, 7000);
   let timerId3 = setInterval(clearLast10MinuteData, 600000);
+  let timerId4 = setInterval(clearLast24HourData, 86400000);
 }
 
 main()
