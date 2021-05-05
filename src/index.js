@@ -200,8 +200,8 @@ async function main() {
 
   await createTelegramClient();
   console.log("Created telegram client");
-  let timerId = setInterval(getAndProcessDataForPune, 10000);
-  let timerId2 = setInterval(getAndProcessDataForAbad, 10000);
+  let timerId = setInterval(getAndProcessDataForPune, 7000);
+  let timerId2 = setInterval(getAndProcessDataForAbad, 7000);
   let timerId3 = setInterval(clearLast10MinuteData, 600000);
 }
 
