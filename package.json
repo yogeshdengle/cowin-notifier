@@ -12,6 +12,7 @@
   "author": "Yogesh Dengle",
   "license": "ISC",
   "dependencies": {
+    "got": "^11.8.2",
     "telegram": "^1.5.11"
   }
 }

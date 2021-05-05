@@ -1,5 +1,6 @@
 const https = require('https');
 const config = require('../resources/config.json');
+const got = require('got');
 
 const fs = require('fs');
 const { TelegramClient } = require('telegram');
@@ -62,7 +63,11 @@ async function getDistrictData(district_id) {
       "Accept": "application/json, text/plain, */*",
       "DNT": "1",
       "Referer": "https://www.cowin.gov.in/",
-      "Cache-Control": "no-cache"
+      "Cache-Control": "no-cache",
+      "Origin" : "",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Pragma": "no-cache",
+      "Accept-Language": "en-US,en;q=0.5"
     }
 
   }
@@ -138,7 +143,7 @@ async function filterAvailable(data, groupName, age, filterFunction) {
           vaccine: session.vaccine,
           address: center.address
         }
-        if (!notificationSentCenters.has(notificationData.sessionId) && (!notificationSentOneHour.get(notificationData.sessionId) || notificationSentOneHour.get(notificationData.sessionId) < 3)) {
+        if (!notificationSentCenters.has(notificationData.sessionId)) {
           await sendNotification(notificationData, groupName, age);
           notificationSentCenters.add(notificationData.sessionId);
         }
