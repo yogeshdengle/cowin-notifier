@@ -71,8 +71,9 @@ async function getDistrictData(district_id) {
     },
     searchParams,
     http2 :true,
-    responseType: 'json'
     //cache : responseCache,
+    responseType: 'json'
+    
   }
   return  await got(apiURL, options);
 }
@@ -95,7 +96,10 @@ async function filterAvailable(data, groupName, age, filterFunction) {
   }
   for (let center of data.centers) {
     for (let session of center.sessions) {
-      if (filterFunction(center, session) && isDateGreaterThanEqualToToday(session.date)) {
+      if (filterFunction(center, session) && isDateGreaterThanEqualToToday(session.date) &&
+      !notificationSentCenters.has(notificationData.sessionId) 
+      && (!notificationsSentPerSessionPer24Hrs.get(notificationData.sessionId) 
+          || notificationsSentPerSessionPer24Hrs.get(notificationData.sessionId) < 3)) {
         let notificationData = {
           sessionId: session.session_id,
           state: center.state_name,
@@ -110,11 +114,8 @@ async function filterAvailable(data, groupName, age, filterFunction) {
           vaccine: session.vaccine,
           address: center.address
         }
-        if (!notificationSentCenters.has(notificationData.sessionId) && (!notificationsSentPerSessionPer24Hrs.get(notificationData.sessionId) || notificationsSentPerSessionPer24Hrs.get(notificationData.sessionId) < 6)) {
-          await sendNotification(notificationData, groupName, age);
-          notificationSentCenters.add(notificationData.sessionId);
-        }
-
+        await sendNotification(notificationData, groupName, age);
+        notificationSentCenters.add(notificationData.sessionId);
       }
     }
   }
@@ -144,15 +145,7 @@ async function createTelegramClient() {
 }
 
 function shouldProcessResponse(response){
-  if (response.fromCache || response.statusCode != 200){
-    console.log("Response is from cache (%s) or status (%s) is not 200", response.fromCache, response.statusCode );
-    return false;
-  } else {
-    console.log("Received response with cache flag (%s) and status (%s)", response.fromCache, response.statusCode );
-    //console.log("Response data is : ",response.body);
-    //fs.writeFileSync("./response.json", JSON.stringify(response.body));
-    return true;
-  }
+  return response.statusCode == 200;
 }
 
 async function getAndProcessDataForPune() {
@@ -164,6 +157,20 @@ async function getAndProcessDataForPune() {
     await filterAvailable(response.body, "Above45PuneCity", 45, (center, session) => {
       return (('' + center.pincode).startsWith("411") > 411000 && session.min_age_limit == 45 && session.available_capacity > 0);
     });
+  }
+}
+
+async function getAndProcessDataForNashik() {
+  let response = await getDistrictData(389);
+  if (shouldProcessResponse(response)){
+    await filterAvailable(response.body, "U45Nashik",18);
+  }
+}
+
+async function getAndProcessDataForNagar() {
+  let response = await getDistrictData(391);
+  if (shouldProcessResponse(response)){
+    await filterAvailable(response.body, "U45Ahmednagar",18);
   }
 }
 
@@ -200,10 +207,12 @@ async function main() {
 
   await createTelegramClient();
   console.log("Created telegram client");
-  let timerId = setInterval(getAndProcessDataForPune, 7000);
-  let timerId2 = setInterval(getAndProcessDataForAbad, 7000);
-  let timerId3 = setInterval(clearLast10MinuteData, 600000);
-  let timerId4 = setInterval(clearLast24HourData, 86400000);
+  setInterval(getAndProcessDataForPune, 7000);
+  setInterval(getAndProcessDataForAbad, 7000);
+  setInterval(getAndProcessDataForNashik, 7000);
+  setInterval(getAndProcessDataForNagar, 7000);
+  setInterval(clearLast10MinuteData, 600000);
+  setInterval(clearLast24HourData, 86400000);
 }
 
 main()
