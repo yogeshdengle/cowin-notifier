@@ -97,9 +97,9 @@ async function filterAvailable(data, groupName, age, filterFunction) {
   for (let center of data.centers) {
     for (let session of center.sessions) {
       if (filterFunction(center, session) && isDateGreaterThanEqualToToday(session.date) &&
-      !notificationSentCenters.has(notificationData.sessionId) 
-      && (!notificationsSentPerSessionPer24Hrs.get(notificationData.sessionId) 
-          || notificationsSentPerSessionPer24Hrs.get(notificationData.sessionId) < 3)) {
+      !notificationSentCenters.has(session.session_id) 
+      && (!notificationsSentPerSessionPer24Hrs.get(session.session_id) 
+          || notificationsSentPerSessionPer24Hrs.get(session.session_id) < 3)) {
         let notificationData = {
           sessionId: session.session_id,
           state: center.state_name,
