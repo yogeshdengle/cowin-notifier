@@ -71,16 +71,8 @@ async function getDistrictData(district_id) {
     },
     searchParams,
     http2 :true,
-    responseType: 'json',
+    responseType: 'json'
     //cache : responseCache,
-    hooks: {
-      beforeRequest: [
-        options => {
-          console.log(JSON.stringify(options));
-        }
-      ]
-    }
-
   }
   return  await got(apiURL, options);
 }
