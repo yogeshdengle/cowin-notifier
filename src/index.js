@@ -16,6 +16,7 @@ var client;
 var notificationSentCenters = new Set();
 var notificationSentOneHour = new Map();
 var log = console.log;
+var responseCache = new Map();
 
 console.log = function () {
   var first_parameter = arguments[0];
@@ -52,66 +53,40 @@ function getTodaysDate() {
 
 async function getDistrictData(district_id) {
   console.log("Getting data for District " + district_id);
-  let url = new URL(apiURL);
-  url.searchParams.set("district_id", district_id);
-  url.searchParams.set("date", getTodaysDate());
+  //let url = new URL(apiURL);
+  let searchParams = {
+    "district_id":  district_id,
+    "date" : getTodaysDate()
+  }
+
   let options = {
     method: "GET",
     headers: {
       "Accept-Language": "hl_IN",
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0",
-      "Accept": "application/json, text/plain, */*",
       "DNT": "1",
       "Referer": "https://www.cowin.gov.in/",
-      "Cache-Control": "no-cache",
-      "Origin" : "",
-      "Accept-Encoding": "gzip, deflate, br",
-      "Pragma": "no-cache",
+      "Origin" : "https://www.cowin.gov.in/",
       "Accept-Language": "en-US,en;q=0.5"
+    },
+    searchParams,
+    http2 :true,
+    responseType: 'json',
+    //cache : responseCache,
+    hooks: {
+      beforeRequest: [
+        options => {
+          console.log(JSON.stringify(options));
+        }
+      ]
     }
 
   }
-  return await doRequest(url, options);
+  return  await got(apiURL, options);
 }
 
 
 
-/**
- * Do a request with options provided.
- *
- * @param {Object} options
- * @param {Object} data
- * @return {Promise} a promise of request
- */
-function doRequest(url, options, data) {
-  return new Promise((resolve, reject) => {
-    const req = https.request(url, options, (res) => {
-      res.setEncoding('utf8');
-      let responseBody = '';
-
-      res.on('data', (chunk) => {
-        responseBody += chunk;
-      });
-
-      res.on('end', () => {
-        try {
-          resolve(JSON.parse(responseBody));
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
-
-    req.on('error', (err) => {
-      reject(err);
-    });
-
-    if (data) {
-      req.write(data);
-    }
-    req.end();
-  });
-}
 
 function isDateGreaterThanEqualToToday(date) {
   const now = new Date();
@@ -122,7 +97,7 @@ function isDateGreaterThanEqualToToday(date) {
 
 async function filterAvailable(data, groupName, age, filterFunction) {
   if (typeof filterFunction !== 'function'){
-      filterFunction = (session) => {
+      filterFunction = (center, session) => {
         return (session.min_age_limit == age && session.available_capacity > 0 );
       }
   }
@@ -176,18 +151,35 @@ async function createTelegramClient() {
   }
 }
 
+function shouldProcessResponse(response){
+  if (response.fromCache || response.statusCode != 200){
+    console.log("Response is from cache (%s) or status (%s) is not 200", response.fromCache, response.statusCode );
+    return false;
+  } else {
+    console.log("Received response with cache flag (%s) and status (%s)", response.fromCache, response.statusCode );
+    //console.log("Response data is : ",response.body);
+    //fs.writeFileSync("./response.json", JSON.stringify(response.body));
+    return true;
+  }
+}
+
 async function getAndProcessDataForPune() {
   let response = await getDistrictData(363);
-  //await filter18PlusAvailable(response, "U45Pune");
-  await filterAvailable(response, "U45Pune", 18);
-  await filterAvailable(response, "Above45PuneCity",45, (center, session) => {
-    return ((''+center.pincode).startsWith("411") > 411000 && session.min_age_limit == 45 && session.available_capacity > 0);
-  });
+  if (shouldProcessResponse(response)) {
+    fs.writeFileSync("./response.json", JSON.stringify(response.body));
+    //await filter18PlusAvailable(response, "U45Pune");
+    await filterAvailable(response.body, "U45Pune", 18);
+    await filterAvailable(response.body, "Above45PuneCity", 45, (center, session) => {
+      return (('' + center.pincode).startsWith("411") > 411000 && session.min_age_limit == 45 && session.available_capacity > 0);
+    });
+  }
 }
 
 async function getAndProcessDataForAbad() {
   let response = await getDistrictData(397);
-  await filterAvailable(response, "U45Aurangabad",18);
+  if (shouldProcessResponse(response)){
+    await filterAvailable(response.body, "U45Aurangabad",18);
+  }
 }
 
 
