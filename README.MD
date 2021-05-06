@@ -1,6 +1,8 @@
 # COWIN Appointment Notifier
 
 This is a minimalist script that will keep hitting the cowin api's for appointment avaiablity for certain districts every 7 seconds and send out notifications based on availbality in certain "hardcoded" districts.
+Uses just got and telegram dependencies.
+Uses http2 for better response times.
 
 
 
